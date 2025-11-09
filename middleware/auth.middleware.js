@@ -1,42 +1,43 @@
-import User from "../model/User.js";
 import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+
+// 🔒 Protect routes (verify token + attach user)
 export const protectRoute = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer")) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         message: "Unauthorized access - no token provided",
       });
     }
 
-    //beares eyc
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-    const user = await User.findById(decoded.userId).select("-password");
+    if (!process.env.JWT_SECRET_KEY) {
+      throw new Error("JWT secret key not configured");
+    }
 
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+
+    const user = await User.findById(decoded.userId).select("-password");
     if (!user) {
-      return res.status({
-        message: "User not found",
-      });
+      return res.status(404).json({ message: "User not found" });
     }
 
     req.user = user;
     next();
   } catch (error) {
-    console.log(error)
-    res.status(500).json({
-      message: "Internal server error"
-    });
+    console.error("Auth Error:", error.message);
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
 
-export const isAdmin =async (req, res, next)=>{
-  if(req.user?.role !== 'admin'){
-    return res.status(401).json({
-      message: "Access denied, Admin only "
-    })
+// 🔐 Allow only admins
+export const isAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({
+      message: "Access denied - Admins only",
+    });
   }
   next();
-}
-
+};

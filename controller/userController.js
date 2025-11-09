@@ -1,40 +1,38 @@
-import User from "../model/User.js";
+import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 
+// 🔑 Generate JWT Token
 const generateToken = (userId, role) => {
+  if (!process.env.JWT_SECRET_KEY) {
+    throw new Error("JWT secret key not configured");
+  }
+
   return jwt.sign({ userId, role }, process.env.JWT_SECRET_KEY, {
-    expiresIn: "30d",
+    expiresIn: "30d", // adjust as needed (e.g. 1h for production)
   });
 };
 
+// 🧾 SIGNUP Controller
 export const signUp = async (req, res) => {
   try {
     const { username, email, password, role } = req.body;
-    // console.log(req.body);
-    if (!username || !email | !password) {
-      return res.status(400).json({
-        message: "All fields are required!!",
-      });
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    const userExist = await User.findOne({ email });
-    if (userExist) {
-      return res.status(409).json({
-        message: "User already exist",
-      });
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: "User already exists" });
     }
 
-    const newUser = await User.create({
-      username,
-      email,
-      password,
-      role,
-    });
+    const newUser = await User.create({ username, email, password, role });
 
     const token = generateToken(newUser._id, newUser.role);
+
     res.status(201).json({
       success: true,
-      message: "User created",
+      message: "User registered successfully",
       token,
       user: {
         id: newUser._id,
@@ -44,7 +42,7 @@ export const signUp = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
+    console.error("Signup Error:", err.message);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -52,9 +50,11 @@ export const signUp = async (req, res) => {
   }
 };
 
+// 🔐 LOGIN Controller
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
       return res
         .status(400)
@@ -72,6 +72,7 @@ export const login = async (req, res) => {
     }
 
     const token = generateToken(user._id, user.role);
+
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -84,7 +85,7 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login Error:", error);
+    console.error("Login Error:", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
