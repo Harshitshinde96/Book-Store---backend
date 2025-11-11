@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+import User from "../model/User.js";
 import jwt from "jsonwebtoken";
 
 // 🔑 Generate JWT Token
@@ -12,7 +12,7 @@ const generateToken = (userId, role) => {
   });
 };
 
-// 🧾 SIGNUP Controller
+// SIGNUP Controller
 export const signUp = async (req, res) => {
   try {
     const { username, email, password, role } = req.body;
@@ -50,7 +50,7 @@ export const signUp = async (req, res) => {
   }
 };
 
-// 🔐 LOGIN Controller
+// LOGIN Controller
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -68,7 +68,11 @@ export const login = async (req, res) => {
 
     const isPasswordCorrect = await user.matchPassword(password);
     if (!isPasswordCorrect) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res
+        .status(401)
+        .json({
+          message: "Invalid email or password, the password does not match",
+        });
     }
 
     const token = generateToken(user._id, user.role);
@@ -88,4 +92,4 @@ export const login = async (req, res) => {
     console.error("Login Error:", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
-};
+};  
